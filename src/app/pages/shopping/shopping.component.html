@@ -1,0 +1,43 @@
+<div class="container" dir="rtl">
+  <div class="top-bar">
+    <a routerLink="/dashboard">חזרה לדשבורד</a>
+  </div>
+
+  <h1>🛒 רשימת קניות</h1>
+
+  <div class="form">
+    <input type="text" placeholder="שם מוצר" [(ngModel)]="name" />
+
+    <input type="number" placeholder="כמות" [(ngModel)]="quantity" />
+
+    <button type="button" (click)="saveItem()">
+      {{ editId ? "עדכן מוצר" : "הוסף מוצר" }}
+    </button>
+
+    <button
+      *ngIf="editId"
+      type="button"
+      class="cancel-btn"
+      (click)="cancelEdit()"
+    >
+      ביטול
+    </button>
+  </div>
+
+  <div class="list">
+    <div class="item-card" *ngFor="let item of items">
+      <div>
+        <strong>{{ item.name }}</strong>
+        <span>כמות: {{ item.quantity }}</span>
+      </div>
+
+      <div class="actions">
+        <button type="button" (click)="editItem(item)">עריכה</button>
+
+        <button type="button" class="delete-btn" (click)="deleteItem(item.id!)">
+          מחיקה
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

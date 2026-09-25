@@ -1,0 +1,130 @@
+.container {
+  max-width: 700px;
+  margin: auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.top-bar {
+  margin-bottom: 15px;
+}
+
+.top-bar a {
+  text-decoration: none;
+  color: #1976d2;
+  font-weight: bold;
+}
+
+h1 {
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.form input {
+  flex: 1;
+  padding: 10px;
+  min-width: 0;
+}
+
+button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.form button {
+  background: #1976d2;
+  color: white;
+}
+
+.cancel-btn {
+  background: gray !important;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f3f3f3;
+  color: #111;
+  padding: 14px;
+  border-radius: 10px;
+  gap: 10px;
+}
+
+.item-card strong {
+  color: #111;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.item-card span {
+  display: block;
+  margin-top: 5px;
+  color: #444;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  color: #111;
+}
+
+.delete-btn {
+  background: #d9534f;
+  color: white !important;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 14px;
+  }
+
+  .form {
+    flex-direction: column;
+  }
+
+  .form input,
+  .form button {
+    width: 100%;
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .item-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .actions button {
+    flex: 1;
+    min-height: 44px;
+  }
+}

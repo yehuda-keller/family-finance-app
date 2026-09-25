@@ -1,0 +1,97 @@
+/* Header styles to ensure visible top area */
+.app-header {
+  background: var(--card) !important;
+  color: var(--text) !important;
+  box-shadow: 0 2px 8px rgba(2, 4, 8, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Ensure any leftover nav/header elements are visible */
+.app-header,
+.top-nav,
+header {
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+}
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+}
+.home-btn {
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.top-nav {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.top-nav a {
+  color: var(--text);
+  text-decoration: none;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.top-nav a:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@media (max-width: 700px) {
+  .header-inner {
+    padding: 10px;
+  }
+  .top-nav {
+    gap: 8px;
+  }
+}
+
+/* error banner */
+.app-error-banner {
+  background: rgba(255, 107, 107, 0.08);
+  border: 1px solid rgba(255, 107, 107, 0.18);
+  color: var(--text);
+  padding: 10px 0;
+}
+.app-error-banner .inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+}
+.app-error-banner .dismiss {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.18);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  color: white;
+  font-weight: bold;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.toast-success {
+  background: #28a745;
+}
+
+.toast-error {
+  background: #dc3545;
+}

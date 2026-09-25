@@ -1,0 +1,203 @@
+<div class="container" dir="rtl">
+  <div class="top-bar">
+    <button type="button" class="logout-btn" (click)="logout()">התנתקות</button>
+
+    <a routerLink="/shopping" class="shopping-link"> רשימת קניות </a>
+  </div>
+  <h1>💸 ניהול כלכלת הבית</h1>
+
+  <p class="subtitle">מעקב אחר הכנסות והוצאות בזמן אמת</p>
+
+  <div class="month-filter">
+    <label> חודש: </label>
+
+    <select [(ngModel)]="selectedPeriod">
+      <option *ngFor="let period of periods()" [ngValue]="period.value">
+        {{ period.label }}
+      </option>
+    </select>
+  </div>
+
+  <div class="summary">
+    <div>
+      <h3>הכנסות</h3>
+      <p class="income">₪{{ totalIncome() | number: "1.2-2" }}</p>
+    </div>
+
+    <div>
+      <h3>הוצאות</h3>
+      <p class="expense">₪{{ totalExpense() | number: "1.2-2" }}</p>
+    </div>
+
+    <div>
+      <h3>יתרה</h3>
+      <p [class.income]="balance() >= 0" [class.expense]="balance() < 0">
+        ₪{{ balance() | number: "1.2-2" }}
+      </p>
+    </div>
+  </div>
+
+  <div class="chart">
+    <h2>השוואת הכנסות והוצאות</h2>
+
+    <div class="bar-row">
+      <span>הכנסות</span>
+
+      <div class="bar-bg">
+        <div class="bar income-bar" [style.width.%]="incomeBarWidth()"></div>
+      </div>
+
+      <b>₪{{ totalIncome() | number: "1.2-2" }}</b>
+    </div>
+
+    <div class="bar-row">
+      <span>הוצאות</span>
+
+      <div class="bar-bg">
+        <div class="bar expense-bar" [style.width.%]="expenseBarWidth()"></div>
+      </div>
+
+      <b>₪{{ totalExpense() | number: "1.2-2" }}</b>
+    </div>
+  </div>
+
+  <div class="summary-table">
+    <h2>סיכום הוצאות לפי קטגוריה</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>קטגוריה</th>
+          <th>סכום</th>
+          <th>אחוז</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let group of expenseGroups()" class="has-expenses">
+          <td>{{ group.category }}</td>
+          <td>₪{{ group.expenseTotal | number: "1.2-2" }}</td>
+          <td>
+            {{ expensePercent(group) | number: "1.0-0" }}%
+          </td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td><strong>סה"כ</strong></td>
+          <td>
+            <strong>₪{{ totalExpense() | number: "1.2-2" }}</strong>
+          </td>
+          <td><strong>100%</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="form" #formSection>
+    <h2>
+      {{ editId ? "עריכת תנועה" : "הוספת תנועה" }}
+    </h2>
+
+    <select [(ngModel)]="type" dir="rtl">
+      <option value="expense">הוצאה</option>
+      <option value="income">הכנסה</option>
+    </select>
+
+    <input type="number" placeholder="סכום" min="0" [(ngModel)]="amount" />
+
+    <input type="date" [(ngModel)]="date" />
+
+    <select [(ngModel)]="category" dir="rtl">
+      <option *ngFor="let c of categories" [value]="c">
+        {{ c }}
+      </option>
+    </select>
+
+    <input type="text" placeholder="תיאור" [(ngModel)]="description" />
+
+    <button type="button" [disabled]="saving" (click)="saveTransaction()">
+      {{ editId ? "עדכן" : "שמור" }}
+    </button>
+
+    <button *ngIf="editId" type="button" class="cancel-btn" (click)="clearForm()">
+      ביטול
+    </button>
+  </div>
+
+  <h2 class="section-title income-title">הכנסות</h2>
+
+  <div class="category-section" *ngFor="let group of transactionsByCategory()">
+    <ng-container *ngIf="group.incomeItems.length > 0">
+      <div class="category-header">
+        <h3 class="category-title">
+          {{ group.category }}
+        </h3>
+
+        <span class="category-total income">
+          ₪{{ group.incomeTotal | number: "1.2-2" }}
+        </span>
+      </div>
+
+      <div class="transaction-card" *ngFor="let t of group.incomeItems">
+        <div class="card-top">
+          <strong class="income"> הכנסה </strong>
+          <span class="amount"> ₪{{ t.amount | number: "1.2-2" }} </span>
+        </div>
+
+        <div class="card-details">
+          <p>{{ t.description || "ללא תיאור" }}</p>
+          <p class="transaction-date">{{ formatDate(t) }}</p>
+        </div>
+
+        <div class="card-actions">
+          <button type="button" (click)="editTransaction(t)">עריכה</button>
+          <button
+            class="delete-btn"
+            type="button"
+            (click)="deleteTransaction(t.id!)"
+          >
+            מחיקה
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <h2 class="section-title expense-title">הוצאות</h2>
+
+  <div class="category-section" *ngFor="let group of transactionsByCategory()">
+    <ng-container *ngIf="group.expenseItems.length > 0">
+      <div class="category-header">
+        <h3 class="category-title">
+          {{ group.category }}
+        </h3>
+
+        <span class="category-total expense">
+          ₪{{ group.expenseTotal | number: "1.2-2" }}
+        </span>
+      </div>
+
+      <div class="transaction-card" *ngFor="let t of group.expenseItems">
+        <div class="card-top">
+          <strong class="expense"> הוצאה </strong>
+          <span class="amount"> ₪{{ t.amount | number: "1.2-2" }} </span>
+        </div>
+
+        <div class="card-details">
+          <p>{{ t.description || "ללא תיאור" }}</p>
+          <p class="transaction-date">{{ formatDate(t) }}</p>
+        </div>
+
+        <div class="card-actions">
+          <button type="button" (click)="editTransaction(t)">עריכה</button>
+          <button
+            class="delete-btn"
+            type="button"
+            (click)="deleteTransaction(t.id!)"
+          >
+            מחיקה
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>
