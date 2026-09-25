@@ -22,6 +22,9 @@ interface FileSummary {
   count: number;
   // rows already in the preview from a file chosen earlier
   alreadyListed: number;
+  // the statement's printed total vs the sum of its rows (card statements)
+  expectedTotal?: number;
+  actualTotal?: number;
 }
 
 @Component({
@@ -79,6 +82,8 @@ export class ImportComponent {
           format: result?.format ?? null,
           count: fresh.length,
           alreadyListed: (result?.transactions.length ?? 0) - fresh.length,
+          expectedTotal: result?.expectedTotal,
+          actualTotal: result?.actualTotal,
         });
 
         for (const t of fresh) {
@@ -86,7 +91,7 @@ export class ImportComponent {
           rows.push({
             ...t,
             fileName: file.name,
-            category: categorize(t.description, t.type),
+            category: categorize(t.description, t.type, t.sector),
             include: !t.skipReason,
           });
         }
@@ -153,9 +158,21 @@ export class ImportComponent {
     }
   }
 
+  totalMatches(file: FileSummary): boolean | null {
+    if (file.expectedTotal === undefined || file.actualTotal === undefined) {
+      return null;
+    }
+
+    return Math.abs(file.expectedTotal - file.actualTotal) < 0.01;
+  }
+
   sourceLabel(row: PreviewRow): string {
     if (row.source === 'leumi-card') {
       return `ויזה ${row.card ?? ''}`.trim();
+    }
+
+    if (row.source === 'isracard') {
+      return `ישראכרט ${row.card ?? ''}`.trim();
     }
 
     return 'עו"ש';

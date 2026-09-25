@@ -13,6 +13,9 @@ const EXPENSE_RULES: Rule[] = [
 
   { pattern: /ביטוח|בטוח|מגדל|הראל|הפניקס|מנורה|איילון|ש\. שלמה|הכשרה|גמל|פנסי|השתלמות|מיטב/, category: 'ביטוחים' },
 
+  // health expenses are tracked under insurance
+  { pattern: /שרותי בריאות|שירותי בריאות|קופת חולים|כללית|מכבי|מאוחדת|טר"מ/, category: 'ביטוחים' },
+
   { pattern: /שופרסל|יוחננוף|אושר עד|רמי לוי|סופרכל|ויקטורי|יינות ביתן|טיב טעם|מחסני השוק|חצי חינם|קרפור|סופר/, category: 'סופר' },
 
   { pattern: /דלק|סונול|(^|\s)פז(\s|$)|\bten\b|yellow|פנגו|חניו|רכבת|אגד|רב.?קו|gett|כביש 6|מוסך/i, category: 'תחבורה' },
@@ -26,8 +29,38 @@ const EXPENSE_RULES: Rule[] = [
   { pattern: /טרמינל איקס|זארה|zara|h&m|קסטרו|פוקס|\bfox\b|גולף|shein|asos/i, category: 'ביגוד' },
 ];
 
-export function categorize(description: string, type: TransactionType): string {
-  const rules = type === 'income' ? INCOME_RULES : EXPENSE_RULES;
+// Isracard's merchant categories (ענף), used when no merchant rule matches
+const SECTOR_CATEGORIES: Record<string, string> = {
+  'מכולת/סופר': 'סופר',
+  מעדניות: 'סופר',
+  דלק: 'תחבורה',
+  'שירותי רכב': 'תחבורה',
+  'מסעדות/קפה': 'בילוי',
+  תרבות: 'בילוי',
+  פארמה: 'קוסמטיקה',
+  הלבשה: 'ביגוד',
+  הנעלה: 'ביגוד',
+  ביטוח: 'ביטוחים',
+  'שרות רפואי': 'ביטוחים',
+  'שירות רפואי': 'ביטוחים',
+  "תש' רשויות": 'אחזקת בית',
+  'כלי בית': 'אחזקת בית',
+  'מוצרי חשמל': 'אחזקת בית',
+};
 
-  return rules.find(({ pattern }) => pattern.test(description))?.category ?? 'שונות';
+export function categorize(
+  description: string,
+  type: TransactionType,
+  sector?: string,
+): string {
+  const rules = type === 'income' ? INCOME_RULES : EXPENSE_RULES;
+  const byMerchant = rules.find(({ pattern }) => pattern.test(description));
+
+  if (byMerchant) {
+    return byMerchant.category;
+  }
+
+  const normalizedSector = sector?.replace(/[׳’]/g, "'").trim();
+
+  return (normalizedSector && SECTOR_CATEGORIES[normalizedSector]) || 'שונות';
 }

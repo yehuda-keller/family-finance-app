@@ -394,7 +394,7 @@ export class DashboardComponent {
     } else if (t.source === 'leumi-account') {
       parts.push('עו"ש');
     } else if (t.source === 'isracard') {
-      parts.push('ישראכרט');
+      parts.push(`ישראכרט ${t.card ?? ''}`.trim());
     }
 
     if (t.installment) {

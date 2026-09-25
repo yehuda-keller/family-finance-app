@@ -4,6 +4,7 @@ import {
   parseDate,
   parseInstallment,
   parseLeumiAccount,
+  parseIsracard,
   parseLeumiCard,
   parseStatement,
 } from './parsers';
@@ -39,6 +40,21 @@ const CARD_ROWS = [
   ['24/08/26', 'איילת גייר רפואה אסתטית-צמרת', '2,000.00', 'עסקת תשלומים', 'עסקה בתשלומים תשלום 2 מ- 3', '666.00'],
   ['26/11/24', 'KSP תלפיות', '6,254.00', 'עסקת תשלומים', 'תשלום 23 מ - 24', '260.00'],
   ['סה"כ: 5,762.24'],
+];
+
+// Layout of the Isracard statement converted from PDF to .xlsx
+const ISRACARD_ROWS = [
+  ['פירוט עסקאות ישראכרט'],
+  ['כרטיס המסתיים ב-1975 | מועד חיוב 10/09/2026'],
+  [],
+  ['סך חיוב', 7298.77, 'מספר עסקאות', 64],
+  [],
+  ['תאריך עסקה', 'אמצעי תשלום', 'שם בית העסק', 'ענף', 'סכום עסקה', 'סכום חיוב בש״ח', 'פירוט נוסף'],
+  [new Date(2026, 7, 2), 'תש.נייד', 'תקון-עולם הקולנוע-גמ', 'מוצרי חשמל', 361, -361, 'זיכוי'],
+  [new Date(2026, 7, 9), 'תש.נייד', 'מקס רמלה בע"מ', 'כלי בית', 53.2, 53.2, ''],
+  [new Date(2026, 7, 16), 'תש.נייד', 'חניון קניון רמלה עזר', 'שירותי רכב', 6, 6, ''],
+  [new Date(2026, 7, 16), 'תש.נייד', 'חניון קניון רמלה עזר', 'שירותי רכב', 6, 6, ''],
+  ['20/07/2026', 'תש.נייד', 'ACE', 'כלי בית', 900, 300, 'תשלום 2 מתוך 3'],
 ];
 
 describe('parsers', () => {
@@ -160,12 +176,70 @@ describe('parsers', () => {
     });
   });
 
+  describe('parseIsracard', () => {
+    const result = parseIsracard(ISRACARD_ROWS)!;
+
+    it('reads the card number, dates, refunds and sector', () => {
+      expect(result.transactions.length).toBe(5);
+      expect(result.transactions.every((t) => t.card === '1975')).toBeTrue();
+      expect(result.transactions[0].amount).toBe(-361);
+      expect(result.transactions[0].date).toEqual(new Date(2026, 7, 2, 12));
+      expect(result.transactions[1].sector).toBe('כלי בית');
+    });
+
+    it('keeps identical parking charges on the same day apart', () => {
+      const keys = result.transactions.map((t) => t.dedupeKey);
+      expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    it('reads "תשלום 2 מתוך 3" and dates it to the charge month', () => {
+      const ace = result.transactions.find((t) => t.description === 'ACE')!;
+      expect(ace.installment).toEqual({ number: 2, total: 3 });
+      expect(ace.date).toEqual(new Date(2026, 7, 20, 12));
+    });
+
+    it('compares the printed total with the sum of the rows', () => {
+      expect(result.expectedTotal).toBe(7298.77);
+      // -361 + 53.2 + 6 + 6 + 300, rounded to agorot (no float noise)
+      expect(result.actualTotal).toBe(4.2);
+    });
+  });
+
+  describe('total check', () => {
+    it('reads the Leumi card total from its "סה\"כ:" cell', () => {
+      const rows = [
+        ...CARD_ROWS.slice(0, -1),
+        ['', '', '', '', 'סה"כ:', 283.9],
+      ];
+      const result = parseLeumiCard(rows)!;
+
+      expect(result.expectedTotal).toBe(283.9);
+    });
+  });
+
   describe('parseStatement', () => {
     it('detects the format', () => {
+      expect(parseStatement(ISRACARD_ROWS)!.transactions[0].source).toBe('isracard');
       expect(parseStatement(CARD_ROWS)!.transactions[0].source).toBe('leumi-card');
       expect(parseStatement(ACCOUNT_ROWS)!.transactions[0].source).toBe('leumi-account');
       expect(parseStatement([['שלום'], ['1', '2']])).toBeNull();
     });
+  });
+});
+
+describe('categorize with a sector', () => {
+  it('prefers merchant rules, then falls back to the card company sector', () => {
+    expect(categorize('חניון קניון רמלה עזר', 'expense', 'שירותי רכב')).toBe('תחבורה');
+    expect(categorize('מקס רמלה בע"מ', 'expense', 'כלי בית')).toBe('אחזקת בית');
+    expect(categorize('הגיחון', 'expense', 'תש׳ רשויות')).toBe('אחזקת בית');
+    expect(categorize('ארקפה יהוד', 'expense', 'מסעדות/קפה')).toBe('בילוי');
+    expect(categorize('נינג\'ה סטאר', 'expense', 'שונות')).toBe('שונות');
+  });
+
+  it('puts health expenses under insurance', () => {
+    expect(categorize('שרותי בריאות כללית ה', 'expense', 'שרות רפואי')).toBe('ביטוחים');
+    expect(categorize('טר"מ לוד', 'expense', 'שרות רפואי')).toBe('ביטוחים');
+    expect(categorize('מרפאת שיניים', 'expense', 'שרות רפואי')).toBe('ביטוחים');
   });
 });
 

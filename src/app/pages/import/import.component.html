@@ -23,13 +23,25 @@
   </label>
 
   <div class="files" *ngIf="files().length > 0">
-    <div class="file" *ngFor="let f of files()" [class.unknown]="!f.format">
-      <span class="file-icon">{{ f.format ? "✓" : "!" }}</span>
+    <div
+      class="file"
+      *ngFor="let f of files()"
+      [class.unknown]="!f.format"
+      [class.mismatch]="totalMatches(f) === false"
+    >
+      <span class="file-icon">{{ f.format && totalMatches(f) !== false ? "✓" : "!" }}</span>
       <span class="row-body">
         <span class="row-title">{{ f.format ?? "פורמט לא מזוהה" }}</span>
         <span class="row-meta">
           <bdi>{{ f.name }}</bdi><ng-container *ngIf="f.format"> · {{ f.count }} תנועות</ng-container>
           <ng-container *ngIf="f.alreadyListed > 0"> · {{ f.alreadyListed }} כבר ברשימה</ng-container>
+        </span>
+        <span class="total-ok" *ngIf="totalMatches(f) === true">
+          הסכום תואם לדוח (<span class="num">₪{{ f.expectedTotal | number: "1.2-2" }}</span>)
+        </span>
+        <span class="total-bad" *ngIf="totalMatches(f) === false">
+          סכום השורות <span class="num">₪{{ f.actualTotal | number: "1.2-2" }}</span> לא תואם לסה"כ בדוח
+          <span class="num">₪{{ f.expectedTotal | number: "1.2-2" }}</span>. ייתכן שחסרות שורות.
         </span>
       </span>
     </div>

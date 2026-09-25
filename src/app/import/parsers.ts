@@ -12,6 +12,8 @@ export interface ParsedTransaction {
   amount: number;
   description: string;
   installment?: { number: number; total: number };
+  // the card company's merchant category (Isracard's ענף), a categorization hint
+  sector?: string;
   // stable key built from the row's content; hashed into the doc id
   dedupeKey: string;
   // set when the row shouldn't be imported by default, e.g. a card's
@@ -22,6 +24,10 @@ export interface ParsedTransaction {
 export interface ParseResult {
   format: string;
   transactions: ParsedTransaction[];
+  // card statements print their total; comparing it to the sum of the rows
+  // catches rows lost or garbled on the way (e.g. a PDF → Excel conversion)
+  expectedTotal?: number;
+  actualTotal?: number;
 }
 
 // Monthly card charges as they appear in the Leumi current account
@@ -36,6 +42,12 @@ function cellText(cell: unknown): string {
   }
 
   return String(cell).replace(/\s+/g, ' ').trim();
+}
+
+// Hebrew gershayim/geresh (״ ׳) and typographic quotes vary between
+// exports; compare headers with plain ASCII quotes
+function normalizeHeader(text: string): string {
+  return text.replace(/[״”“]/g, '"').replace(/[׳’‘]/g, "'");
 }
 
 export function parseAmount(cell: unknown): number | null {
@@ -93,11 +105,11 @@ export function parseDate(cell: unknown): Date | null {
   return new Date(year, month - 1, day, 12);
 }
 
-// "תשלום 2 מ 3", "תשלום - 2 מ - 3", "תשלום 23 מ - 24"
+// "תשלום 2 מ 3", "תשלום - 2 מ - 3", "תשלום 23 מ - 24", "תשלום 2 מתוך 3"
 export function parseInstallment(
   text: string,
 ): { number: number; total: number } | undefined {
-  const match = text.match(/תשלום\s*-?\s*(\d+)\s*מ\s*-?\s*(\d+)/);
+  const match = text.match(/תשלום\s*-?\s*(\d+)\s*(?:מתוך|מ)\s*-?\s*(\d+)/);
 
   if (!match) {
     return undefined;
@@ -127,11 +139,11 @@ function matchHeader(
   row: Row,
   columns: Record<string, string>,
 ): Record<string, number> | null {
-  const texts = row.map(cellText);
+  const texts = row.map((cell) => normalizeHeader(cellText(cell)));
   const indexes: Record<string, number> = {};
 
   for (const [key, header] of Object.entries(columns)) {
-    const index = texts.indexOf(header);
+    const index = texts.indexOf(normalizeHeader(header));
 
     if (index < 0) {
       return null;
@@ -141,6 +153,59 @@ function matchHeader(
   }
 
   return indexes;
+}
+
+// Index of an optional column in a header row, or -1
+function optionalColumn(row: Row, header: string): number {
+  return row.map((cell) => normalizeHeader(cellText(cell))).indexOf(header);
+}
+
+// Last 4 digits from a title like "פרוט עסקאות לכרטיס לאומי ויזה 2127"
+// or "כרטיס המסתיים ב-1975"; falls back to the file name
+function findCardNumber(rows: Row[], fileName: string): string | undefined {
+  const match =
+    rows
+      .flat()
+      .map(cellText)
+      .join(' ')
+      .match(/כרטיס[^\d]{0,30}(\d{4})\b/) ?? fileName.match(/(\d{4})/);
+
+  return match?.[1];
+}
+
+// The number in the first cell after a label cell, e.g. ["סה\"כ:", 1764.98]
+function findLabeledAmount(rows: Row[], label: RegExp): number | undefined {
+  for (const row of rows) {
+    const index = row.findIndex((cell) => label.test(normalizeHeader(cellText(cell))));
+
+    if (index < 0) {
+      continue;
+    }
+
+    for (const cell of row.slice(index + 1)) {
+      const amount = parseAmount(cell);
+
+      if (amount !== null) {
+        return amount;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function sumAmounts(transactions: ParsedTransaction[]): number {
+  // round to agorot so float noise doesn't fail the total check
+  return Math.round(transactions.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+}
+
+// installment k of n is dated k-1 months after the purchase,
+// so it lands in the budget month it's actually charged in
+function chargeMonthDate(
+  purchaseDate: Date,
+  installment: { number: number } | undefined,
+): Date {
+  return installment ? addMonths(purchaseDate, installment.number - 1) : purchaseDate;
 }
 
 // Identical rows (same day, merchant and amount) are legitimately possible,
@@ -225,14 +290,7 @@ export function parseLeumiCard(rows: Row[], fileName = ''): ParseResult | null {
     return null;
   }
 
-  // "פרוט עסקאות לכרטיס לאומי ויזה 2127" in the title rows, else the file name
-  const cardMatch =
-    rows
-      .flat()
-      .map(cellText)
-      .join(' ')
-      .match(/כרטיס[^\d]{0,30}(\d{4})\b/) ?? fileName.match(/(\d{4})/);
-  const card = cardMatch?.[1];
+  const card = findCardNumber(rows, fileName);
 
   const seen = new Map<string, number>();
   const transactions: ParsedTransaction[] = [];
@@ -266,11 +324,7 @@ export function parseLeumiCard(rows: Row[], fileName = ''): ParseResult | null {
     const merchant = cellText(row[col['merchant']]);
     const installment = parseInstallment(cellText(row[col['details']]));
 
-    // installment k of n is dated k-1 months after the purchase,
-    // so it lands in the budget month it's actually charged in
-    const date = installment
-      ? addMonths(purchaseDate, installment.number - 1)
-      : purchaseDate;
+    const date = chargeMonthDate(purchaseDate, installment);
 
     transactions.push({
       source: 'leumi-card',
@@ -290,11 +344,75 @@ export function parseLeumiCard(rows: Row[], fileName = ''): ParseResult | null {
   return {
     format: `לאומי – פירוט כרטיס${card ? ' ' + card : ''}`,
     transactions,
+    expectedTotal: findLabeledAmount(rows, /^סה"כ:?$/),
+    actualTotal: sumAmounts(transactions),
   };
 }
 
-// Card statement first: its title rows could never match the account header,
-// but checking the more specific format first keeps detection unambiguous
+const ISRACARD_COLUMNS = {
+  date: 'תאריך עסקה',
+  merchant: 'שם בית העסק',
+  charge: 'סכום חיוב בש"ח',
+};
+
+export function parseIsracard(rows: Row[], fileName = ''): ParseResult | null {
+  const headerIndex = rows.findIndex((row) => matchHeader(row, ISRACARD_COLUMNS));
+
+  if (headerIndex < 0) {
+    return null;
+  }
+
+  const header = rows[headerIndex];
+  const col = matchHeader(header, ISRACARD_COLUMNS)!;
+  const sectorCol = optionalColumn(header, 'ענף');
+  const detailsCol = optionalColumn(header, 'פירוט נוסף');
+
+  const card = findCardNumber(rows.slice(0, headerIndex), fileName);
+  const seen = new Map<string, number>();
+  const transactions: ParsedTransaction[] = [];
+
+  for (const row of rows.slice(headerIndex + 1)) {
+    const purchaseDate = parseDate(row[col['date']]);
+    const charge = parseAmount(row[col['charge']]);
+
+    if (!purchaseDate || charge === null || charge === 0) {
+      continue;
+    }
+
+    const merchant = cellText(row[col['merchant']]);
+    const installment =
+      detailsCol >= 0 ? parseInstallment(cellText(row[detailsCol])) : undefined;
+
+    transactions.push({
+      source: 'isracard',
+      card,
+      date: chargeMonthDate(purchaseDate, installment),
+      type: 'expense',
+      amount: charge,
+      description: merchant,
+      installment,
+      sector: sectorCol >= 0 ? cellText(row[sectorCol]) || undefined : undefined,
+      dedupeKey: withOccurrence(
+        seen,
+        `isracard|${card ?? ''}|${dateKey(purchaseDate)}|${merchant}|${charge}|${installment?.number ?? ''}`,
+      ),
+    });
+  }
+
+  return {
+    format: `ישראכרט – פירוט כרטיס${card ? ' ' + card : ''}`,
+    transactions,
+    expectedTotal: findLabeledAmount(rows.slice(0, headerIndex), /^סך חיוב$/),
+    actualTotal: sumAmounts(transactions),
+  };
+}
+
+// Card statements first: their headers can't match the account's, but
+// checking the more specific formats first keeps detection unambiguous
 export function parseStatement(rows: Row[], fileName = ''): ParseResult | null {
-  return parseLeumiCard(rows, fileName) ?? parseLeumiAccount(rows);
+  return (
+    parseIsracard(rows, fileName) ??
+    parseLeumiCard(rows, fileName) ??
+    parseLeumiAccount(rows)
+  );
 }
