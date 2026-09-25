@@ -1,43 +1,49 @@
-<div class="container" dir="rtl">
-  <div class="top-bar">
-    <a routerLink="/dashboard">חזרה לדשבורד</a>
-  </div>
+<div class="page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">{{ items.length }} פריטים ברשימה</p>
+      <h1 class="page-title">רשימת קניות</h1>
+    </div>
+  </header>
 
-  <h1>🛒 רשימת קניות</h1>
+  <form class="add-bar card" [class.editing]="editId" (ngSubmit)="saveItem()">
+    <input class="field" type="text" name="name" placeholder="מה צריך לקנות?" [(ngModel)]="name" autocomplete="off" />
 
-  <div class="form">
-    <input type="text" placeholder="שם מוצר" [(ngModel)]="name" />
-
-    <input type="number" placeholder="כמות" [(ngModel)]="quantity" />
-
-    <button type="button" (click)="saveItem()">
-      {{ editId ? "עדכן מוצר" : "הוסף מוצר" }}
-    </button>
-
-    <button
-      *ngIf="editId"
-      type="button"
-      class="cancel-btn"
-      (click)="cancelEdit()"
-    >
-      ביטול
-    </button>
-  </div>
-
-  <div class="list">
-    <div class="item-card" *ngFor="let item of items">
-      <div>
-        <strong>{{ item.name }}</strong>
-        <span>כמות: {{ item.quantity }}</span>
+    <div class="add-controls">
+      <div class="stepper" aria-label="כמות">
+        <button type="button" (click)="changeQuantity(1)" aria-label="הוספה">+</button>
+        <span class="num">{{ quantity }}</span>
+        <button type="button" (click)="changeQuantity(-1)" [disabled]="quantity <= 1" aria-label="הפחתה">−</button>
       </div>
 
-      <div class="actions">
-        <button type="button" (click)="editItem(item)">עריכה</button>
+      <button type="submit" class="btn btn-primary">{{ editId ? "עדכון" : "הוספה" }}</button>
+      <button type="button" class="btn" *ngIf="editId" (click)="cancelEdit()">ביטול</button>
+    </div>
+  </form>
 
-        <button type="button" class="delete-btn" (click)="deleteItem(item.id!)">
-          מחיקה
-        </button>
-      </div>
+  <div class="list" *ngIf="items.length > 0; else empty">
+    <div class="row" *ngFor="let item of items" [class.editing-row]="editId === item.id">
+      <span class="qty num">×{{ item.quantity }}</span>
+      <span class="row-body">
+        <span class="row-title">{{ item.name }}</span>
+      </span>
+      <button type="button" class="icon-btn small" (click)="editItem(item)" aria-label="עריכה">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" />
+        </svg>
+      </button>
+      <button type="button" class="icon-btn small danger" (click)="deleteItem(item.id!)" aria-label="מחיקה">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+        </svg>
+      </button>
     </div>
   </div>
+
+  <ng-template #empty>
+    <div class="empty card">
+      <div class="empty-icon">🛒</div>
+      <p>הרשימה ריקה</p>
+    </div>
+  </ng-template>
 </div>

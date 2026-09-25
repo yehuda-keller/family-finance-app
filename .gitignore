@@ -48,3 +48,7 @@ Thumbs.db
 *.xlsx
 *.xls
 *.csv
+
+# Firebase CLI logs
+firebase-debug.log
+*-debug.log

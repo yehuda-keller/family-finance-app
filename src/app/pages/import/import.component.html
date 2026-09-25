@@ -1,0 +1,70 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">לאומי · עו"ש וכרטיסי אשראי</p>
+      <h1 class="page-title">ייבוא תנועות</h1>
+    </div>
+  </header>
+
+  <label class="drop card" [class.busy]="reading || importing">
+    <input
+      type="file"
+      accept=".xls,.xlsx,.csv,.html"
+      multiple
+      [disabled]="reading || importing"
+      (change)="onFilesSelected($event)"
+    />
+    <span class="drop-icon">📄</span>
+    <strong>{{ reading ? "קורא קבצים..." : "בחירת קבצי Excel" }}</strong>
+    <span class="drop-hint">
+      "תנועות בחשבון" ו"פירוט עסקאות" לכל כרטיס. אפשר כמה קבצים יחד; מה שכבר
+      יובא ידולג.
+    </span>
+  </label>
+
+  <div class="files" *ngIf="files().length > 0">
+    <div class="file" *ngFor="let f of files()" [class.unknown]="!f.format">
+      <span class="file-icon">{{ f.format ? "✓" : "!" }}</span>
+      <span class="row-body">
+        <span class="row-title">{{ f.format ?? "פורמט לא מזוהה" }}</span>
+        <span class="row-meta">
+          <bdi>{{ f.name }}</bdi><ng-container *ngIf="f.format"> · {{ f.count }} תנועות</ng-container>
+          <ng-container *ngIf="f.alreadyListed > 0"> · {{ f.alreadyListed }} כבר ברשימה</ng-container>
+        </span>
+      </span>
+    </div>
+  </div>
+
+  <div class="list" *ngIf="rows().length > 0">
+    <div class="import-row" *ngFor="let row of rows()" [class.excluded]="!row.include">
+      <label class="check">
+        <input type="checkbox" [(ngModel)]="row.include" (ngModelChange)="touch()" [attr.aria-label]="'לכלול את ' + row.description" />
+        <span class="checkmark"></span>
+      </label>
+
+      <div class="row-body">
+        <div class="line">
+          <span class="row-title">{{ row.description }}</span>
+          <span class="row-amount num" [class.income-text]="row.type === 'income'">
+            {{ row.type === "income" ? "+" : "−" }}₪{{ (row.amount < 0 ? -row.amount : row.amount) | number: "1.2-2" }}
+          </span>
+        </div>
+        <span class="row-meta">
+          {{ formatDate(row.date) }} · {{ sourceLabel(row) }}<ng-container *ngIf="row.installment"> · תשלום {{ row.installment.number }}/{{ row.installment.total }}</ng-container>
+        </span>
+        <span class="skip-note" *ngIf="row.skipReason">{{ row.skipReason }}</span>
+
+        <select class="cat-select" [(ngModel)]="row.category" [attr.aria-label]="'קטגוריה עבור ' + row.description">
+          <option *ngFor="let c of categories" [value]="c">{{ categoryIcon(c) }} {{ c }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="action-bar" *ngIf="rows().length > 0">
+  <button type="button" class="btn" (click)="clear()">ניקוי</button>
+  <button type="button" class="btn btn-primary" [disabled]="importing || includedCount() === 0" (click)="import()">
+    {{ importing ? "מייבא..." : "ייבוא " + includedCount() + " תנועות" }}
+  </button>
+</div>

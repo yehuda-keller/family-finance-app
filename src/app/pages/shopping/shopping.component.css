@@ -1,130 +1,72 @@
-.container {
-  max-width: 700px;
-  margin: auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-.top-bar {
-  margin-bottom: 15px;
-}
-
-.top-bar a {
-  text-decoration: none;
-  color: #1976d2;
-  font-weight: bold;
-}
-
-h1 {
-  text-align: center;
-}
-
-.form {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.form input {
-  flex: 1;
-  padding: 10px;
-  min-width: 0;
-}
-
-button {
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.form button {
-  background: #1976d2;
-  color: white;
-}
-
-.cancel-btn {
-  background: gray !important;
-}
-
-.list {
+.add-bar {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 12px;
 }
 
-.item-card {
+.add-bar.editing {
+  border-color: var(--accent);
+}
+
+.add-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f3f3f3;
-  color: #111;
-  padding: 14px;
-  border-radius: 10px;
   gap: 10px;
 }
 
-.item-card strong {
-  color: #111;
-  font-size: 20px;
-  font-weight: bold;
+.add-controls .btn-primary {
+  flex: 1;
 }
 
-.item-card span {
-  display: block;
-  margin-top: 5px;
-  color: #444;
-}
-
-.actions {
+.stepper {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
 }
 
-.actions button {
-  color: #111;
+.stepper button {
+  width: 44px;
+  height: 50px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  font-weight: 600;
 }
 
-.delete-btn {
-  background: #d9534f;
-  color: white !important;
+.stepper span {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
 }
 
-@media (max-width: 600px) {
-  .container {
-    padding: 14px;
-  }
+.qty {
+  display: grid;
+  place-items: center;
+  min-width: 42px;
+  height: 42px;
+  padding: 0 6px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  font-weight: 700;
+  font-size: 14px;
+}
 
-  .form {
-    flex-direction: column;
-  }
+.editing-row {
+  background: var(--accent-soft);
+}
 
-  .form input,
-  .form button {
-    width: 100%;
-    font-size: 16px;
-    min-height: 44px;
-  }
+.icon-btn.small {
+  width: 38px;
+  height: 38px;
+  background: transparent;
+}
 
-  .item-card {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.icon-btn.small svg {
+  width: 18px;
+  height: 18px;
+}
 
-  .actions {
-    width: 100%;
-    display: flex;
-    gap: 8px;
-  }
-
-  .actions button {
-    flex: 1;
-    min-height: 44px;
-  }
+.icon-btn.danger {
+  color: var(--expense);
 }

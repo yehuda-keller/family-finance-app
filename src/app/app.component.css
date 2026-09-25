@@ -1,97 +1,77 @@
-/* Header styles to ensure visible top area */
-.app-header {
-  background: var(--card) !important;
-  color: var(--text) !important;
-  box-shadow: 0 2px 8px rgba(2, 4, 8, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-/* Ensure any leftover nav/header elements are visible */
-.app-header,
-.top-nav,
-header {
-  background-color: var(--bg) !important;
-  color: var(--text) !important;
-}
-.header-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 18px;
-}
-.home-btn {
-  background: #2563eb;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-}
-.top-nav {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-.top-nav a {
-  color: var(--text);
-  text-decoration: none;
-  padding: 6px 8px;
-  border-radius: 8px;
-}
-.top-nav a:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-@media (max-width: 700px) {
-  .header-inner {
-    padding: 10px;
-  }
-  .top-nav {
-    gap: 8px;
-  }
-}
-
-/* error banner */
-.app-error-banner {
-  background: rgba(255, 107, 107, 0.08);
-  border: 1px solid rgba(255, 107, 107, 0.18);
-  color: var(--text);
-  padding: 10px 0;
-}
-.app-error-banner .inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
-}
-.app-error-banner .dismiss {
-  background: rgba(255, 107, 107, 0.12);
-  border: 1px solid rgba(255, 107, 107, 0.18);
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
 .toast {
   position: fixed;
-  top: 20px;
-  left: 20px;
-  padding: 12px 18px;
-  border-radius: 10px;
-  color: white;
-  font-weight: bold;
-  z-index: 9999;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.toast-success {
-  background: #28a745;
+  top: calc(12px + var(--safe-top));
+  inset-inline: 16px;
+  z-index: 100;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 0 auto;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(29, 33, 48, 0.92);
+  border: 1px solid rgba(47, 210, 138, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  font-weight: 600;
+  font-size: 15px;
+  text-align: center;
+  animation: toast-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
 .toast-error {
-  background: #dc3545;
+  border-color: rgba(255, 92, 122, 0.5);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-around;
+  height: calc(var(--nav-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(11, 13, 18, 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-top: 1px solid var(--border);
+}
+
+.bottom-nav a {
+  flex: 1;
+  max-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.bottom-nav a svg {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  transition: transform 0.15s ease;
+}
+
+.bottom-nav a.active {
+  color: var(--text);
+}
+
+.bottom-nav a.active svg {
+  color: var(--accent);
+  transform: translateY(-1px);
 }

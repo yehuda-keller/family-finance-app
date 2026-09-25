@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -14,17 +15,23 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   authService = inject(AuthService);
   router = inject(Router);
+  private toast = inject(ToastService);
 
   email = '';
   password = '';
+  loading = false;
 
   async login() {
+    this.loading = true;
+
     try {
-      await this.authService.login(this.email, this.password);
+      await this.authService.login(this.email.trim(), this.password);
 
       this.router.navigate(['/dashboard']);
     } catch (error) {
-      alert('Invalid email or password');
+      this.toast.show('אימייל או סיסמה שגויים', 'error');
+    } finally {
+      this.loading = false;
     }
   }
 }

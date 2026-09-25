@@ -1,7 +1,6 @@
 import {
   Component,
-  ElementRef,
-  ViewChild,
+  HostListener,
   computed,
   inject,
   signal,
@@ -19,6 +18,7 @@ import {
 } from '../../services/transaction.service';
 
 import { GroupService } from '../../services/group.service';
+import { CATEGORIES, categoryIcon } from '../../categories';
 import { ToastService } from '../../services/toast.service';
 
 const MONTH_NAMES = [
@@ -80,20 +80,7 @@ export class DashboardComponent {
   private groupService = inject(GroupService);
   private toast = inject(ToastService);
 
-  @ViewChild('formSection') formSection?: ElementRef<HTMLElement>;
-
-  categories = [
-    'משכורת',
-    'ביטוחים',
-    'חינוך',
-    'תחבורה',
-    'סופר',
-    'אחזקת בית',
-    'בילוי',
-    'קוסמטיקה',
-    'ביגוד',
-    'שונות',
-  ];
+  categories = CATEGORIES;
 
   monthStartDay = signal(1);
   transactions = signal<Transaction[]>([]);
@@ -107,6 +94,13 @@ export class DashboardComponent {
 
   editId: string | null = null;
   saving = false;
+  sheetOpen = false;
+
+  listFilter = signal<'all' | TransactionType>('all');
+  showAllCategories = signal(false);
+  categoryFilter = signal<string | null>(null);
+
+  categoryIcon = categoryIcon;
 
   // every period that has transactions, plus the current one, newest first
   periods = computed(() => {
@@ -162,8 +156,47 @@ export class DashboardComponent {
   });
 
   expenseGroups = computed(() =>
-    this.transactionsByCategory().filter((group) => group.expenseTotal > 0),
+    this.transactionsByCategory()
+      .filter((group) => group.expenseTotal > 0)
+      .sort((a, b) => b.expenseTotal - a.expenseTotal),
   );
+
+  // top categories only, unless expanded (or the filtered one is further down)
+  shownExpenseGroups = computed(() => {
+    const groups = this.expenseGroups();
+    const selected = this.categoryFilter();
+
+    if (this.showAllCategories()) {
+      return groups;
+    }
+
+    return groups.filter(
+      (group, index) => index < 5 || group.category === selected,
+    );
+  });
+
+  visibleTransactions = computed(() => {
+    const type = this.listFilter();
+    const category = this.categoryFilter();
+
+    return this.filteredTransactions().filter(
+      (t) =>
+        (type === 'all' || t.type === type) &&
+        (!category || this.displayCategory(t) === category),
+    );
+  });
+
+  periodLabel = computed(
+    () =>
+      this.periods().find((p) => p.value === this.selectedPeriod())?.label ?? '',
+  );
+
+  // share of the income+expense total that is income, for the ratio bar
+  incomeShare = computed(() => {
+    const total = this.totalIncome() + this.totalExpense();
+
+    return total > 0 ? (this.totalIncome() / total) * 100 : 50;
+  });
 
   totalIncome = computed(() =>
     this.sum(this.filteredTransactions().filter((t) => t.type === 'income')),
@@ -175,19 +208,6 @@ export class DashboardComponent {
 
   balance = computed(() => this.totalIncome() - this.totalExpense());
 
-  incomeBarWidth = computed(
-    () =>
-      (this.totalIncome() /
-        Math.max(this.totalIncome(), this.totalExpense(), 1)) *
-      100,
-  );
-
-  expenseBarWidth = computed(
-    () =>
-      (this.totalExpense() /
-        Math.max(this.totalIncome(), this.totalExpense(), 1)) *
-      100,
-  );
 
   constructor() {
     this.groupService
@@ -252,7 +272,7 @@ export class DashboardComponent {
         await this.transactionService.addTransaction(input);
       }
 
-      this.clearForm();
+      this.closeSheet();
     } catch (err) {
       console.error('saveTransaction error', err);
       this.toast.show('שגיאה בשמירת התנועה', 'error');
@@ -273,20 +293,68 @@ export class DashboardComponent {
     this.category = this.categories.includes(t.category) ? t.category : 'שונות';
     this.description = t.description;
     this.date = toDateInputValue(transactionDate(t) ?? new Date());
-
-    this.formSection?.nativeElement.scrollIntoView({ behavior: 'smooth' });
+    this.sheetOpen = true;
   }
 
-  async deleteTransaction(id: string) {
+  openNew() {
+    this.clearForm();
+    this.sheetOpen = true;
+  }
+
+  @HostListener('document:keydown.escape')
+  closeSheet() {
+    this.sheetOpen = false;
+    this.clearForm();
+  }
+
+  async deleteFromSheet() {
+    if (this.editId) {
+      const deleted = await this.deleteTransaction(this.editId);
+
+      if (deleted) {
+        this.closeSheet();
+      }
+    }
+  }
+
+  // swap the obvious default category when switching between income/expense
+  setType(type: TransactionType) {
+    this.type = type;
+
+    if (type === 'income' && this.category === 'סופר') {
+      this.category = 'משכורת';
+    } else if (type === 'expense' && this.category === 'משכורת') {
+      this.category = 'סופר';
+    }
+  }
+
+  toggleCategoryFilter(category: string) {
+    this.categoryFilter.update((current) =>
+      current === category ? null : category,
+    );
+  }
+
+  // income counts up, expenses down; a refund is a negative expense
+  signedAmount(t: Transaction): number {
+    return t.type === 'income' ? Number(t.amount) : -Number(t.amount);
+  }
+
+  displayCategory(t: Transaction): string {
+    return this.categories.includes(t.category) ? t.category : 'שונות';
+  }
+
+  async deleteTransaction(id: string): Promise<boolean> {
     if (!confirm('למחוק את התנועה?')) {
-      return;
+      return false;
     }
 
     try {
       await this.transactionService.deleteTransaction(id);
+      return true;
     } catch (err) {
       console.error('deleteTransaction error', err);
       this.toast.show('שגיאה במחיקה', 'error');
+      return false;
     }
   }
 
@@ -316,6 +384,24 @@ export class DashboardComponent {
     const month = String(d.getMonth() + 1).padStart(2, '0');
 
     return `${day}.${month}.${d.getFullYear()}`;
+  }
+
+  sourceNote(t: Transaction): string {
+    const parts: string[] = [];
+
+    if (t.source === 'leumi-card') {
+      parts.push(`ויזה ${t.card ?? ''}`.trim());
+    } else if (t.source === 'leumi-account') {
+      parts.push('עו"ש');
+    } else if (t.source === 'isracard') {
+      parts.push('ישראכרט');
+    }
+
+    if (t.installment) {
+      parts.push(`תשלום ${t.installment.number}/${t.installment.total}`);
+    }
+
+    return parts.join(' · ');
   }
 
   private periodKey(t: Transaction): string | null {

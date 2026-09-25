@@ -1,9 +1,16 @@
-<div class="login-container">
-  <h1>Family Finance Login</h1>
+<div class="login">
+  <div class="brand">
+    <div class="logo">💸</div>
+    <h1>הכספים שלנו</h1>
+    <p>ניהול הכנסות והוצאות של המשפחה</p>
+  </div>
 
-  <input type="email" placeholder="Email" [(ngModel)]="email" />
+  <form class="card login-card" (ngSubmit)="login()">
+    <input class="field" type="email" name="email" placeholder="אימייל" autocomplete="email" inputmode="email" dir="ltr" [(ngModel)]="email" />
+    <input class="field" type="password" name="password" placeholder="סיסמה" autocomplete="current-password" dir="ltr" [(ngModel)]="password" />
 
-  <input type="password" placeholder="Password" [(ngModel)]="password" />
-
-  <button (click)="login()">Login / Register</button>
+    <button type="submit" class="btn btn-primary btn-block" [disabled]="loading">
+      {{ loading ? "מתחבר..." : "כניסה" }}
+    </button>
+  </form>
 </div>

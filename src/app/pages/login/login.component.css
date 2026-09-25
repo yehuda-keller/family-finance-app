@@ -1,14 +1,50 @@
-.login-container {
-  max-width: 350px;
-  margin: 80px auto;
+.login {
+  min-height: 100dvh;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  padding: 20px;
+  justify-content: center;
+  gap: 28px;
 }
 
-input,
-button {
-  padding: 14px;
-  font-size: 16px;
+.brand {
+  text-align: center;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 16px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 16px 40px rgba(124, 108, 255, 0.45);
+  font-size: 38px;
+}
+
+.brand h1 {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.brand p {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-card .field::placeholder {
+  text-align: right;
+}
+
+.login-card .btn {
+  margin-top: 6px;
 }

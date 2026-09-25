@@ -37,12 +37,12 @@ export class ShoppingComponent {
 
   async saveItem() {
     if (!this.name.trim()) {
-      alert('הכנס שם מוצר');
+      this.toast.show('הכנס שם מוצר', 'error');
       return;
     }
 
     if (!this.quantity || this.quantity < 1) {
-      alert('הכנס כמות תקינה');
+      this.toast.show('הכנס כמות תקינה', 'error');
       return;
     }
 
@@ -92,6 +92,10 @@ export class ShoppingComponent {
   clearForm() {
     this.name = '';
     this.quantity = 1;
+  }
+
+  changeQuantity(delta: number) {
+    this.quantity = Math.max(1, (Number(this.quantity) || 1) + delta);
   }
 
   cancelEdit() {
