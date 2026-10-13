@@ -407,7 +407,12 @@ export class DashboardComponent {
   private periodKey(t: Transaction): string | null {
     const date = transactionDate(t);
 
-    return date ? this.periodKeyFor(date, t.type) : null;
+    // money in (income, or a card refund stored as a negative expense)
+    // always counts in its calendar month
+    const type: TransactionType =
+      this.signedAmount(t) > 0 ? 'income' : 'expense';
+
+    return date ? this.periodKeyFor(date, type) : null;
   }
 
   // 'YYYY-MM' of the budget month. Expenses before monthStartDay
