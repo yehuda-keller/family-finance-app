@@ -17,7 +17,6 @@ import {
   transactionDate,
 } from '../../services/transaction.service';
 
-import { GroupService } from '../../services/group.service';
 import { CATEGORIES, categoryIcon } from '../../categories';
 import { ToastService } from '../../services/toast.service';
 
@@ -66,6 +65,11 @@ function fromDateInputValue(value: string): Date | null {
   return new Date(year, month - 1, day, 12);
 }
 
+// 'YYYY-MM' of the calendar month; income and expenses alike
+function periodKeyFor(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -77,14 +81,12 @@ export class DashboardComponent {
   private transactionService = inject(TransactionService);
   private auth = inject(Auth);
   private router = inject(Router);
-  private groupService = inject(GroupService);
   private toast = inject(ToastService);
 
   categories = CATEGORIES;
 
-  monthStartDay = signal(1);
   transactions = signal<Transaction[]>([]);
-  selectedPeriod = signal<string>(this.periodKeyFor(new Date(), 'expense'));
+  selectedPeriod = signal<string>(periodKeyFor(new Date()));
 
   type: TransactionType = 'expense';
   amount: number | null = null;
@@ -104,7 +106,7 @@ export class DashboardComponent {
 
   // every period that has transactions, plus the current one, newest first
   periods = computed(() => {
-    const keys = new Set<string>([this.periodKeyFor(new Date(), 'expense')]);
+    const keys = new Set<string>([periodKeyFor(new Date())]);
 
     for (const t of this.transactions()) {
       const key = this.periodKey(t);
@@ -210,17 +212,6 @@ export class DashboardComponent {
 
 
   constructor() {
-    this.groupService
-      .getMonthStartDay()
-      .then((day) => {
-        this.monthStartDay.set(day);
-        this.selectedPeriod.set(this.periodKeyFor(new Date(), 'expense'));
-      })
-      .catch((error) => {
-        console.error('Error loading month start day:', error);
-        this.selectedPeriod.set(this.periodKeyFor(new Date(), 'expense'));
-      });
-
     this.transactionService.getTransactions().subscribe({
       next: (data) => this.transactions.set(data),
       error: (error) => {
@@ -407,30 +398,7 @@ export class DashboardComponent {
   private periodKey(t: Transaction): string | null {
     const date = transactionDate(t);
 
-    // money in (income, or a card refund stored as a negative expense)
-    // always counts in its calendar month
-    const type: TransactionType =
-      this.signedAmount(t) > 0 ? 'income' : 'expense';
-
-    return date ? this.periodKeyFor(date, type) : null;
-  }
-
-  // 'YYYY-MM' of the budget month. Expenses before monthStartDay
-  // belong to the previous month (billing cycle); income doesn't shift.
-  private periodKeyFor(date: Date, type: TransactionType): string {
-    let year = date.getFullYear();
-    let month = date.getMonth() + 1;
-
-    if (type === 'expense' && date.getDate() < this.monthStartDay()) {
-      month -= 1;
-
-      if (month === 0) {
-        month = 12;
-        year -= 1;
-      }
-    }
-
-    return `${year}-${String(month).padStart(2, '0')}`;
+    return date ? periodKeyFor(date) : null;
   }
 
   private createCategoryGroup(

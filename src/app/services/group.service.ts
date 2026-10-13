@@ -30,28 +30,6 @@ export class GroupService {
     return this.getGroupIdForUser(user);
   }
 
-  async getMonthStartDay(): Promise<number> {
-    const groupId = await this.getGroupId();
-
-    const groupSnapshot = await getDoc(doc(this.firestore, `groups/${groupId}`));
-
-    if (!groupSnapshot.exists()) {
-      throw new Error('מסמך הקבוצה לא נמצא');
-    }
-
-    const monthStartDay = groupSnapshot.data()?.['monthStartDay'];
-
-    if (
-      typeof monthStartDay !== 'number' ||
-      monthStartDay < 1 ||
-      monthStartDay > 28
-    ) {
-      return 1;
-    }
-
-    return monthStartDay;
-  }
-
   private getGroupIdForUser(user: User): Promise<string> {
     let groupId = this.groupIdCache.get(user.uid);
 
